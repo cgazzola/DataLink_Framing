@@ -7,6 +7,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Random;
 
 
@@ -66,12 +67,21 @@ public class Server {
 			rc = in.read(fileBuff);
 			
 			
+			
+			
 			sendData = Message.code(seq_num, Message.DATA, fileBuff, rc);
 			while(rc != -1){
 				int rand = random.nextInt(10);
 				if(rand < 4){
-					System.out.println("~~~~ERROR PACKET NOT SENT ~~~~~");
-					continue;
+					serverSocket.setSoTimeout(1000); //sets timeout to 1 second
+					try{ //simulation of lost packet...no ack
+						serverSocket.receive(frame);
+						continue;
+					}
+					catch(SocketTimeoutException e){
+						System.out.println("ERROR: DID NOT RECEIVE NAK, RESENDING PACKET\n");
+					}
+					
 				}
 				else{
 					//send the packet
