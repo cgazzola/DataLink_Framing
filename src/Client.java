@@ -56,12 +56,18 @@ public class Client {
             // writing onto file.
             System.out.println("Writing Sequence Number to file.");
             writer.print("Sequence Number Received: " + String.valueOf(message.seq_num_int)+'\n');
+            writer.print(fileData);
+            //
             
-
+            // send ack back to server
             sendData = Message.code(seq_num, Message.ACK, ackString.getBytes(), ackString.length() );
+            System.out.println("LOOK HERE: " + sendData[0]);
+            
             DatagramPacket sendPacket2 = new DatagramPacket(sendData, sendData.length, IPaddress, 2015);
-            System.out.println("\nSending ACKNOWLEDGEMENT\n");
-            clientSocket.send(sendPacket);
+            
+            clientSocket.send(sendPacket2);
+            System.out.println("\nACKNOWLEDGEMENT SENT\n");
+            //
             
             
             

@@ -33,6 +33,10 @@ public class Server {
 		int rc;
 		byte[] receiveData;
 		byte[] sendData;
+		
+		byte[] receiveData2 = new byte[15];
+		byte[] sendData2;
+		
 		Message message = new Message();
 		String eof = "End Of File";
 		
@@ -43,6 +47,9 @@ public class Server {
 		
 		receiveData = new byte[15];
 		DatagramPacket frame = new DatagramPacket(receiveData, receiveData.length);
+		
+		
+		
 		serverSocket.receive(frame);
 		InetAddress IPaddress = frame.getAddress();
 		System.out.println("INET " + IPaddress);
@@ -71,6 +78,10 @@ public class Server {
 			
 			sendData = Message.code(seq_num, Message.DATA, fileBuff, rc);
 			while(rc != -1){
+				
+				seq_num += 1;
+				System.out.println("Sending Packet: " + seq_num);
+				
 				int rand = random.nextInt(10);
 				if(rand < 4){
 					serverSocket.setSoTimeout(1000); //sets timeout to 1 second
@@ -79,29 +90,50 @@ public class Server {
 						continue;
 					}
 					catch(SocketTimeoutException e){
-						System.out.println("ERROR: DID NOT RECEIVE NAK, RESENDING PACKET\n");
+						System.out.println("ERROR: DID NOT RECEIVE ACK, RESENDING PACKET");
+						System.out.println("Sending packet " + seq_num + " again.\n");
+						
+						String messageString = new String(fileBuff);
+						//System.out.println("Message to be sent: " + messageString);
+							
+						DatagramPacket sendPacket = new DatagramPacket(sendData, rc+5, IPaddress, 2015);
+						//DatagramPacket ack_frame = new DatagramPacket(receiveData2, receiveData2.length);
+						//serverSocket.receive(frame);
+//						if(message.message_type == Message.ACK){
+//							System.out.println("Got ACK!!!!\n\n");
+//						}else{
+//							System.out.println("Didn't get Ack\n\n");
+//						}
+						
+						
 					}
 					
 				}
 				else{
+					
+					serverSocket.setSoTimeout(1000); //set timeout
 					//send the packet
-					seq_num += 1;
-					System.out.println("Sending packet: " + seq_num);
+					
+					//System.out.println("Sending packet: " + seq_num);
 						
 					String messageString = new String(fileBuff);
-					System.out.println("Message to be sent: " + messageString);
+					//System.out.println("Message to be sent: " + messageString + "\n\n\n");
 						
 					DatagramPacket sendPacket = new DatagramPacket(sendData, rc+5, IPaddress, 2015);
 					serverSocket.send(sendPacket);
+					try{
+						//DatagramPacket ack_frame = new DatagramPacket(receiveData2, receiveData2.length);
+						serverSocket.receive(frame);
+						message.parse(frame.getData(), frame.getLength());
+						if(message.message_type == Message.ACK){
+							System.out.println("Got ACK!!!!\n\n");
+						}else{
+							System.out.println("Didn't get Ack\n\n");
+						}
+					}catch(SocketTimeoutException e){
+						System.out.println("ERROR: didn't catch any packet");
+					}
 					
-					serverSocket.receive(frame);
-					message.parse(frame.getData(), frame.getLength());
-					if(message.message_type == Message.ACK){
-						System.out.println("Got ACK!!!!\n\n");
-					}
-					else{
-						System.out.println("Didn't get Ack\n\n");
-					}
 					
 					fileBuff = new byte[8];
 					rc = in.read(fileBuff);
@@ -109,6 +141,9 @@ public class Server {
                         sendData = Message.code(seq_num, Message.DATA, fileBuff, rc);
 				}	
 			}	
+			
+			//send end of file, empty packet message to client.
+			
 			sendData = Message.code(seq_num, Message.END, eof.getBytes(), eof.length());
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPaddress, 2015);
             System.out.println("Sending empty packet");
